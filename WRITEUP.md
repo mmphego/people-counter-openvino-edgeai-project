@@ -35,8 +35,7 @@ deployed edge model. The potential effects of each of these are as follows...
 ## Model Research
 
 [This heading is only required if a suitable model was not found after trying out at least three
-different models. However, you may also use this heading to detail how you converted 
-a successful model.]
+different models. However, you may also use this heading to detail how you converted a successful model.]
 
 In investigating potential people counter models, I tried each of the following three models:
 
@@ -45,7 +44,7 @@ In investigating potential people counter models, I tried each of the following 
   - I converted the model to an Intermediate Representation with the following arguments...
   - The model was insufficient for the app because...
   - I tried to improve the model for the app by...
-  
+
 - Model 2: [Name]
   - [Model Source]
   - I converted the model to an Intermediate Representation with the following arguments...

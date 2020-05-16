@@ -30,12 +30,13 @@ from openvino.inference_engine import IENetwork, IECore
 
 class Network:
     """
-    Load and configure inference plugins for the specified target devices 
+    Load and configure inference plugins for the specified target devices
     and performs synchronous and asynchronous modes for the specified infer requests.
     """
 
     def __init__(self):
         ### TODO: Initialize any class variables desired ###
+        pass
 
     def load_model(self):
         ### TODO: Load the model ###
