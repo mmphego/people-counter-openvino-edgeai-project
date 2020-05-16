@@ -97,6 +97,9 @@ class Network:
         """Gets the input shape of the network."""
         return self.network.inputs[self._input_blob].shape
 
+    def get_input_width_height(self)->list:
+        return self.get_input_shape()[:2]
+
     def exec_net(
         self, image: object, request_id: int = 0,
     ):
