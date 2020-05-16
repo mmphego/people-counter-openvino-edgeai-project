@@ -33,8 +33,8 @@ You will choose a model to use and convert it with the Model Optimizer.
 *   Npm v3.10.10
 *   CMake
 *   MQTT Mosca server
-  
-        
+
+
 ## Setup
 
 ### Install Intel® Distribution of OpenVINO™ toolkit
@@ -57,10 +57,10 @@ Utilize the classroom workspace, or refer to the relevant instructions for your 
 
 There are three components that need to be running in separate terminals for this application to work:
 
--   MQTT Mosca server 
+-   MQTT Mosca server
 -   Node.js* Web server
 -   FFmpeg server
-     
+
 From the main directory:
 
 * For MQTT/Mosca server:
@@ -76,7 +76,7 @@ From the main directory:
   ```
   **Note:** If any configuration errors occur in mosca server or Web server while using **npm install**, use the below commands:
    ```
-   sudo npm install npm -g 
+   sudo npm install npm -g
    rm -rf node_modules
    npm cache clean
    npm config set registry "http://registry.npmjs.org"
@@ -192,7 +192,7 @@ to run on your local machine, you will need to change the below file:
 webservice/ui/src/constants/constants.js
 ```
 
-The `CAMERA_FEED_SERVER` and `MQTT_SERVER` both use the workspace configuration. 
+The `CAMERA_FEED_SERVER` and `MQTT_SERVER` both use the workspace configuration.
 You can change each of these as follows:
 
 ```

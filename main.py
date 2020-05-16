@@ -27,7 +27,9 @@ import sys
 import time
 import socket
 import json
+
 import cv2
+import imutils
 
 import logging as log
 import paho.mqtt.client as mqtt
@@ -42,6 +44,7 @@ MQTT_HOST = IPADDRESS
 MQTT_PORT = 3001
 MQTT_KEEPALIVE_INTERVAL = 60
 
+CPU_EXTENSION = "cpu_ext/libcpu_extension_sse4.so"
 
 def build_argparser():
     """
@@ -60,16 +63,16 @@ def build_argparser():
     parser.add_argument(
         "-i", "--input", required=True, type=str, help="Path to image or video file"
     )
-    parser.add_argument(
-        "-l",
-        "--cpu_extension",
-        required=False,
-        type=str,
-        default=None,
-        help="MKLDNN (CPU)-targeted custom layers."
-        "Absolute path to a shared library with the"
-        "kernels impl.",
-    )
+    # parser.add_argument(
+    #     "-l",
+    #     "--cpu_extension",
+    #     required=False,
+    #     type=str,
+    #     default=None,
+    #     help="MKLDNN (CPU)-targeted custom layers."
+    #     "Absolute path to a shared library with the"
+    #     "kernels impl.",
+    # )
     parser.add_argument(
         "-d",
         "--device",
@@ -95,6 +98,17 @@ def connect_mqtt():
     client.connect(MQTT_HOST, MQTT_PORT, 60)
     return client
 
+def draw_boxes(frame, result, prob_threshold, width, height):
+    """Draw bounding boxes onto the frame."""
+    for box in result[0][0]:  # Output shape is 1x1x100x7
+        conf = box[2]
+        if conf >= prob_threshold:
+            xmin = int(box[3] * width)
+            ymin = int(box[4] * height)
+            xmax = int(box[5] * width)
+            ymax = int(box[6] * height)
+            cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 0, 255), 1)
+    return frame
 
 def infer_on_stream(args, client):
     """
@@ -111,7 +125,7 @@ def infer_on_stream(args, client):
     prob_threshold = args.prob_threshold
 
     ### TODO: Load the model through `infer_network` ###
-
+    infer_network.load_model()
     ### TODO: Handle the input stream ###
 
     ### TODO: Loop until stream is over ###
