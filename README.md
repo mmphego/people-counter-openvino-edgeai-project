@@ -129,7 +129,7 @@ sudo ffserver -f ./ffmpeg/server.conf
 
 ### Step 4 - Run the code
 
-Open a new terminal to run the code. 
+Open a new terminal to run the code.
 
 #### Setup the environment
 
@@ -142,7 +142,7 @@ You should also be able to run the application with Python 3.6, although newer v
 
 #### Running on the CPU
 
-When running Intel® Distribution of OpenVINO™ toolkit Python applications on the CPU, the CPU extension library is required. This can be found at: 
+When running Intel® Distribution of OpenVINO™ toolkit Python applications on the CPU, the CPU extension library is required. This can be found at:
 
 ```
 /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/
@@ -156,6 +156,19 @@ Though by default application runs on CPU, this can also be explicitly specified
 python main.py -i resources/Pedestrian_Detect_2_1_1.mp4 -m your-model.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm
 ```
 If you are in the classroom workspace, use the “Open App” button to view the output. If working locally, to see the output on a web based interface, open the link [http://0.0.0.0:3004](http://0.0.0.0:3004/) in a browser.
+
+##### Debugging with Docker
+In order to see what is going inside the docker we need to sync the displays with `--env DISPLAY=$DISPLAY` `--volume="/tmp/.X11-unix:/tmp/.X11-unix:rw"`.
+
+```bash
+docker build -t "$USER/$(basename $PWD)" .
+docker run --rm -ti \
+--volume "$PWD":/app \
+--env DISPLAY=$DISPLAY \
+--volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
+ "$USER/$(basename $PWD)" \
+ bash -c "source /opt/intel/openvino/bin/setupvars.sh &&python main.py -i resources/Pedestrian_Detect_2_1_1.mp4 -m models/ssd_mobilenet_v2_coco.xml"
+```
 
 #### Running on the Intel® Neural Compute Stick
 
