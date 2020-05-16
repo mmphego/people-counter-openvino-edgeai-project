@@ -110,4 +110,7 @@ dmypy.json
 # VirtualEnvs
 .*_Py3.6
 
+# Models
+models/
+
 # End of https://www.gitignore.io/api/python
