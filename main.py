@@ -20,16 +20,14 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
-
-
 import os
 import sys
 import time
 import socket
 import json
-
+import numpy as np
 import cv2
-import imutils
+# import imutils
 
 import logging as log
 import paho.mqtt.client as mqtt
@@ -44,7 +42,6 @@ MQTT_HOST = IPADDRESS
 MQTT_PORT = 3001
 MQTT_KEEPALIVE_INTERVAL = 60
 
-CPU_EXTENSION = "cpu_ext/libcpu_extension_sse4.so"
 
 def build_argparser():
     """Parse command line arguments.
@@ -62,16 +59,16 @@ def build_argparser():
     parser.add_argument(
         "-i", "--input", required=True, type=str, help="Path to image or video file"
     )
-    # parser.add_argument(
-    #     "-l",
-    #     "--cpu_extension",
-    #     required=False,
-    #     type=str,
-    #     default=None,
-    #     help="MKLDNN (CPU)-targeted custom layers."
-    #     "Absolute path to a shared library with the"
-    #     "kernels impl.",
-    # )
+    parser.add_argument(
+        "-l",
+        "--cpu_extension",
+        required=False,
+        type=str,
+        default=None,
+        help="MKLDNN (CPU)-targeted custom layers."
+        "Absolute path to a shared library with the"
+        "kernels impl.",
+    )
     parser.add_argument(
         "-d",
         "--device",
@@ -94,8 +91,12 @@ def build_argparser():
 
 def connect_mqtt():
     client = mqtt.Client()
-    client.connect(MQTT_HOST, MQTT_PORT, 60)
-    return client
+    try:
+        client.connect(MQTT_HOST, MQTT_PORT, 60)
+        return client
+    except Exception as err:
+        print(f"[Error]: mqtt client -> {str(err)}")
+
 
 def draw_boxes(frame, result, prob_threshold, width, height):
     """Draw bounding boxes onto the frame."""
@@ -108,6 +109,16 @@ def draw_boxes(frame, result, prob_threshold, width, height):
             ymax = int(box[6] * height)
             cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 0, 255), 1)
     return frame
+
+
+def process_frame(frame, height, width, data_layout=(2, 0, 1)):
+    """Helper function for processing frame"""
+    p_frame = cv2.resize(frame, (width, height))
+    # Change data layout from HWC to CHW
+    p_frame = p_frame.transpose(data_layout)
+    p_frame = p_frame.reshape(1, *p_frame.shape)
+    return p_frame
+
 
 def infer_on_stream(args, client):
     """
@@ -124,31 +135,54 @@ def infer_on_stream(args, client):
     prob_threshold = args.prob_threshold
 
     ### TODO: Load the model through `infer_network` ###
-    infer_network.load_model()
+    infer_network.load_model(
+        model_xml=args.model,
+        device=args.device,
+        cpu_extension=args.cpu_extension if args.cpu_extension else None,
+    )
     ### TODO: Handle the input stream ###
+    print("[INFO] processing video...")
+    stream = cv2.VideoCapture(args.input)
+    writer = None
 
+    input_width, input_height = infer_network.get_input_width_height()
     ### TODO: Loop until stream is over ###
-
+    while True:
         ### TODO: Read from the video capture ###
-
-        ### TODO: Pre-process the image as needed ###
-
-        ### TODO: Start asynchronous inference for specified request ###
+        # Grab the next stream.
+        (grabbed, frame) = stream.read()
+        # If the frame was not grabbed, then we might have reached end of steam,
+        # then break
+        if not grabbed:
+            break
 
         ### TODO: Wait for the result ###
+        p_frame = process_frame(frame, input_width, input_height)
+        import IPython; globals().update(locals()); IPython.embed(header='Python Debugger')
 
-            ### TODO: Get the results of the inference request ###
 
-            ### TODO: Extract any desired stats from the results ###
+        ### TODO: Start asynchronous inference for specified request ###
+        infer_network.exec_net(p_frame)
+        ### TODO: Wait for the result ###
 
-            ### TODO: Calculate and send relevant information on ###
-            ### current_count, total_count and duration to the MQTT server ###
-            ### Topic "person": keys of "count" and "total" ###
-            ### Topic "person/duration": key of "duration" ###
+        ### TODO: Get the results of the inference request ###
+
+        ### TODO: Extract any desired stats from the results ###
+
+        ### TODO: Calculate and send relevant information on ###
+        ### current_count, total_count and duration to the MQTT server ###
+        ### Topic "person": keys of "count" and "total" ###
+        ### Topic "person/duration": key of "duration" ###
 
         ### TODO: Send the frame to the FFMPEG server ###
 
         ### TODO: Write an output image if `single_image_mode` ###
+        cv2.imshow("Frame", frame)
+        key = cv2.waitKey(1) & 0xFF
+
+        # if the `q` key was pressed, break from the loop
+        if key == ord("q"):
+            break
 
 
 def main():
