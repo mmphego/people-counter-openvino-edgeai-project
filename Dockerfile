@@ -4,4 +4,5 @@
 #    bash -c "source /opt/intel/openvino/bin/setupvars.sh && python3 main.py -h"
 
 FROM mmphego/intel-openvino
+
 RUN pip install imutils

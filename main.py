@@ -167,4 +167,7 @@ def main():
 
 
 if __name__ == "__main__":
+
+    if not sys.version_info[:2] == (3, 5) and not sys.version_info[:2] == (3, 6):
+        raise RuntimeError("Only Python3.5 and Python3.6 are supported!!!")
     main()
