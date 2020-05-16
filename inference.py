@@ -24,7 +24,10 @@
 
 import os
 import sys
-import logging as log
+
+import numpy as np
+# from loguru import logger
+
 from openvino.inference_engine import IENetwork, IECore
 
 
@@ -35,7 +38,9 @@ class Network:
     """
 
     def __init__(self):
-        self.ie_core = None
+        # Initialize the plugin
+        # https://docs.openvinotoolkit.org/latest/ie_python_api/classie__api_1_1IECore.html
+        self.ie_core = IECore()
         self.network = None
         self.exec_network = None
         self._input_blob = None
@@ -55,10 +60,6 @@ class Network:
             Defaults to CPU as device for use in the workspace.
         cpu_extension: str (optional)
         """
-        # Initialize the plugin
-        # https://docs.openvinotoolkit.org/latest/ie_python_api/classie__api_1_1IECore.html
-        self.ie_core = IECore()
-
         ### TODO: Load the model ###
         # https://docs.openvinotoolkit.org/latest/ie_python_api/classie__api_1_1IENetwork.html
         model_bin = os.path.splitext(model_xml)[0] + ".bin"
@@ -104,7 +105,7 @@ class Network:
         self, image: object, request_id: int = 0,
     ):
         """Makes an asynchronous inference request, given an input image."""
-        if not image:
+        if not isinstance(image, np.ndarray):
             raise IOError("Image not parsed.")
         self.exec_network.start_async(
             request_id=request_id, inputs={self._input_blob: image}
