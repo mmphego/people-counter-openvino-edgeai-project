@@ -1,8 +1,7 @@
+
 # Project Write-Up
 
-You can use this document as a template for providing your project write-up. However, if you
-have a different format you prefer, feel free to use it as long as you answer all required
-questions.
+You can use this document as a template for providing your project write-up. However, if you have a different format you prefer, feel free to use it as long as you answer all required questions.
 
 ## Explaining Custom Layers
 
@@ -27,15 +26,52 @@ Some of the potential use cases of the people counter app are...
 
 Each of these use cases would be useful because...
 
+### Models Analysis
+Possible models to consider for the project.
+- [person-detection-action-recognition-0006 AP: 90.70%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-action-recognition-0006/description/person-detection-action-recognition-0006.md)
+  This model can detect these actions: sitting, writing, raising_hand,standing,turned around, lie on the desk
+- [person-detection-retail-0013 AP: 88.62%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-retail-0013/description/person-detection-retail-0013.md)
+- [pedestrian-detection-adas-0002 AP: 88%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/pedestrian-detection-adas-0002/description/pedestrian-detection-adas-0002.md)
+- [person-detection-action-recognition-0005 AP: 82.79%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-action-recognition-0005/description/person-detection-action-recognition-0005.md)
+  This model can detect these actions: sitting, standing, raising hand.
+- [person-detection-retail-0002 AP: 80%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-retail-0002/description/person-detection-retail-0002.md)
+- [person-detection-asl-0001 AP: 77.68%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-asl-0001/description/person-detection-asl-0001.md)
+- [human-pose-estimation-0001 AP: 42.8%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/human-pose-estimation-0001/description/human-pose-estimation-0001.md)
+
+### Downloading the model
+
+An example as to how to download a model from the Open Model Zoo and convert to IR.
+
+Typical Usage:
+
+- Download the correct model for object detection.
+```bash
+DOCKERCONT="mmphego/intel-openvino"
+docker run --rm -ti -v "$PWD":/app "$DOCKERCONT" \
+/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/downloader.py \
+--name ssd_mobilenet_v2_coco
+```
+
+- Convert TensorFlow model to Intermediate Representation
+```bash
+DOCKERCONT="mmphego/intel-openvino"
+cd public/ssd_mobilenet_v2_coco/ssd_mobilenet_v2_coco_2018_03_29
+docker run --rm -ti -v "$PWD":/app "$DOCKERCONT" \
+/opt/intel/openvino/deployment_tools/model_optimizer/mo.py \
+--input_model frozen_inference_graph.pb \
+--tensorflow_object_detection_api_pipeline_config pipeline.config \
+--reverse_input_channels \
+--transformations_config /opt/intel/openvino/deployment_tools/model_optimizer/extensions/front/tf/ssd_v2_support.json
+rsync -truv --remove-source-files frozen_inference_graph.{bin,xml} ../../../models/
+```
+
 ## Assess Effects on End User Needs
 
-Lighting, model accuracy, and camera focal length/image size have different effects on a
-deployed edge model. The potential effects of each of these are as follows...
+Lighting, model accuracy, and camera focal length/image size have different effects on a deployed edge model. The potential effects of each of these are as follows...
 
 ## Model Research
 
-[This heading is only required if a suitable model was not found after trying out at least three
-different models. However, you may also use this heading to detail how you converted a successful model.]
+[This heading is only required if a suitable model was not found after trying out at least three different models. However, you may also use this heading to detail how you converted a successful model.]
 
 In investigating potential people counter models, I tried each of the following three models:
 
