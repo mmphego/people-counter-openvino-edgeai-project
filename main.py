@@ -182,6 +182,10 @@ def infer_on_stream(args, client):
         logger.error(msg)
         raise RuntimeError(msg)
 
+    # person detected counter.
+    last_counted = 0
+    total_count = 0
+
     while stream.isOpened():
         ### TODO: Read from the video capture ###
         # Grab the next stream.
@@ -209,6 +213,18 @@ def infer_on_stream(args, client):
                 pbar.update(1)
                 out.write(frame)
 
+            # Check when a person enters the video the first time.
+            if current_count > last_counted:
+                detected_start = time.time()
+                total_count = total_count + current_count - last_counted
+                print(total_count)
+
+            # Check how long the person is in the video
+            if current_count < last_counted:
+                detected_end = time.time() - detected_start
+                print(detected_end)
+
+            last_counted = current_count
         ### TODO: Extract any desired stats from the results ###
 
         ### TODO: Calculate and send relevant information on ###
@@ -228,10 +244,11 @@ def infer_on_stream(args, client):
     # Release the out writer, capture, and destroy any OpenCV windows
     if args.out:
         pbar.close()
-    out.release()
+        out.release()
     stream.release()
     cv2.destroyAllWindows()
-
+    if client:
+        client.disconnect()
 
 def main():
     """
