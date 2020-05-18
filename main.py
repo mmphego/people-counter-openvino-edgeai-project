@@ -27,10 +27,10 @@ import socket
 import json
 import numpy as np
 import cv2
-# import imutils
 
-import logging as log
+from loguru import logger
 import paho.mqtt.client as mqtt
+from tqdm import tqdm
 
 from argparse import ArgumentParser
 from inference import Network
@@ -86,6 +86,13 @@ def build_argparser():
         default=0.5,
         help="Probability threshold for detections filtering" "(0.5 by default)",
     )
+    parser.add_argument(
+        "--out", action="store_true", help="Write video to file.",
+    )
+    parser.add_argument(
+        "--debug", action="store_true", help="Show output on screen [debugging].",
+    )
+
     return parser
 
 
@@ -95,11 +102,12 @@ def connect_mqtt():
         client.connect(MQTT_HOST, MQTT_PORT, 60)
         return client
     except Exception as err:
-        print(f"[Error]: mqtt client -> {str(err)}")
+        logger.error(f"MQTT client -> {str(err)}")
 
 
 def draw_boxes(frame, result, prob_threshold, width, height):
     """Draw bounding boxes onto the frame."""
+    count = 0
     for box in result[0][0]:  # Output shape is 1x1x100x7
         conf = box[2]
         if conf >= prob_threshold:
@@ -108,7 +116,8 @@ def draw_boxes(frame, result, prob_threshold, width, height):
             xmax = int(box[5] * width)
             ymax = int(box[6] * height)
             cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 0, 255), 1)
-    return frame
+            count += 1
+    return frame, count
 
 
 def process_frame(frame, height, width, data_layout=(2, 0, 1)):
@@ -141,13 +150,39 @@ def infer_on_stream(args, client):
         cpu_extension=args.cpu_extension if args.cpu_extension else None,
     )
     ### TODO: Handle the input stream ###
-    print("[INFO] processing video...")
-    stream = cv2.VideoCapture(args.input)
+    logger.info("Processing video...")
     writer = None
+    stream = cv2.VideoCapture(args.input)
+    stream.open(args.input)
+    # Grab the shape of the input
+    orig_width = int(stream.get(3))
+    orig_height = int(stream.get(4))
 
-    input_width, input_height = infer_network.get_input_width_height()
+    if args.out:
+        # Create a video writer for the output video
+        # The second argument should be `cv2.VideoWriter_fourcc('M','J','P','G')`
+        # on Mac, and `0x00000021` on Linux
+        logger.debug("Enabled writing output video to file.")
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        out = cv2.VideoWriter("out.mp4", fourcc, 30, (orig_width, orig_height))
+        length = stream.get(cv2.CAP_PROP_FRAME_COUNT)
+        fps = stream.get(cv2.CAP_PROP_FPS)
+        pbar = tqdm(total=int(length - fps + 1))
+
+    # Example: for 'ssd_mobilenet_v2_coco.xml'
+    # Image, shape - 1,300,300,3, format is B,H,W,C where:
+    # B - batch size
+    # H - height
+    # W - width
+    # C - channel
+    batch_size, channel, input_height, input_width = infer_network.get_input_shape()
     ### TODO: Loop until stream is over ###
-    while True:
+    if not stream.isOpened():
+        msg = "Cannot open video source!!!"
+        logger.error(msg)
+        raise RuntimeError(msg)
+
+    while stream.isOpened():
         ### TODO: Read from the video capture ###
         # Grab the next stream.
         (grabbed, frame) = stream.read()
@@ -156,16 +191,23 @@ def infer_on_stream(args, client):
         if not grabbed:
             break
 
-        ### TODO: Wait for the result ###
         p_frame = process_frame(frame, input_width, input_height)
-        import IPython; globals().update(locals()); IPython.embed(header='Python Debugger')
-
-
-        ### TODO: Start asynchronous inference for specified request ###
+        start_infer = time.time()
         infer_network.exec_net(p_frame)
-        ### TODO: Wait for the result ###
-
-        ### TODO: Get the results of the inference request ###
+        if infer_network.wait() == 0:
+            result = infer_network.get_output()
+            end_infer = time.time() - start_infer
+            # Draw the boxes onto the input
+            out_frame, current_count = draw_boxes(
+                frame, result, prob_threshold, orig_width, orig_height
+            )
+            message = f"Inference time: {end_infer*1000:.2f}ms"
+            cv2.putText(
+                frame, message, (20, 20), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 1
+            )
+            if args.out:
+                pbar.update(1)
+                out.write(frame)
 
         ### TODO: Extract any desired stats from the results ###
 
@@ -176,13 +218,19 @@ def infer_on_stream(args, client):
 
         ### TODO: Send the frame to the FFMPEG server ###
 
-        ### TODO: Write an output image if `single_image_mode` ###
-        cv2.imshow("Frame", frame)
+        if args.debug:
+            cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
 
-        # if the `q` key was pressed, break from the loop
+        # # if the `q` key was pressed, break from the loop
         if key == ord("q"):
             break
+    # Release the out writer, capture, and destroy any OpenCV windows
+    if args.out:
+        pbar.close()
+    out.release()
+    stream.release()
+    cv2.destroyAllWindows()
 
 
 def main():
