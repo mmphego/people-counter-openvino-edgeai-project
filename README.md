@@ -162,12 +162,14 @@ In order to see what is going inside the docker we need to sync the displays wit
 
 ```bash
 docker build -t "$USER/$(basename $PWD)" .
+xhost +
 docker run --rm -ti \
 --volume "$PWD":/app \
 --env DISPLAY=$DISPLAY \
 --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
  "$USER/$(basename $PWD)" \
  bash -c "source /opt/intel/openvino/bin/setupvars.sh &&python main.py -i resources/Pedestrian_Detect_2_1_1.mp4 -m models/ssd_mobilenet_v2_coco.xml"
+xhost -
 ```
 
 #### Running on the Intel® Neural Compute Stick

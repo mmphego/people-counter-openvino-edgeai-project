@@ -26,7 +26,7 @@ import os
 import sys
 
 import numpy as np
-# from loguru import logger
+from loguru import logger
 
 from openvino.inference_engine import IENetwork, IECore
 
@@ -97,9 +97,6 @@ class Network:
     def get_input_shape(self) -> list:
         """Gets the input shape of the network."""
         return self.network.inputs[self._input_blob].shape
-
-    def get_input_width_height(self)->list:
-        return self.get_input_shape()[:2]
 
     def exec_net(
         self, image: object, request_id: int = 0,
