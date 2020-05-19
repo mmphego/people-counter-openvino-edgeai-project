@@ -41,7 +41,7 @@ Possible models to consider for the project.
 ### Downloading the model
 
 An example as to how to download a model from the Open Model Zoo and convert to IR.
-
+https://github.com/opencv/open_model_zoo/blob/master/models/public/ssd_mobilenet_v2_coco/ssd_mobilenet_v2_coco.md
 Typical Usage:
 
 - Download the correct model for object detection.

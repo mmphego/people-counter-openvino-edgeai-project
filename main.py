@@ -105,17 +105,129 @@ def connect_mqtt():
         logger.error(f"MQTT client -> {str(err)}")
 
 
+def categories_list():
+    # https://github.com/opencv/opencv/blob/master/samples/data/dnn/object_detection_classes_coco.txt
+    return [
+        "null",
+        "person",
+        "bicycle",
+        "car",
+        "motorcycle",
+        "airplane",
+        "bus",
+        "train",
+        "truck",
+        "boat",
+        "traffic light",
+        "fire hydrant",
+        "street sign",
+        "stop sign",
+        "parking meter",
+        "bench",
+        "bird",
+        "cat",
+        "dog",
+        "horse",
+        "sheep",
+        "cow",
+        "elephant",
+        "bear",
+        "zebra",
+        "giraffe",
+        "hat",
+        "backpack",
+        "umbrella",
+        "shoe",
+        "eye glasses",
+        "handbag",
+        "tie",
+        "suitcase",
+        "frisbee",
+        "skis",
+        "snowboard",
+        "sports ball",
+        "kite",
+        "baseball bat",
+        "baseball glove",
+        "skateboard",
+        "surfboard",
+        "tennis racket",
+        "bottle",
+        "plate",
+        "wine glass",
+        "cup",
+        "fork",
+        "knife",
+        "spoon",
+        "bowl",
+        "banana",
+        "apple",
+        "sandwich",
+        "orange",
+        "broccoli",
+        "carrot",
+        "hot dog",
+        "pizza",
+        "donut",
+        "cake",
+        "chair",
+        "couch",
+        "potted plant",
+        "bed",
+        "mirror",
+        "dining table",
+        "window",
+        "desk",
+        "toilet",
+        "door",
+        "tv",
+        "laptop",
+        "mouse",
+        "remote",
+        "keyboard",
+        "cell phone",
+        "microwave",
+        "oven",
+        "toaster",
+        "sink",
+        "refrigerator",
+        "blender",
+        "book",
+        "clock",
+        "vase",
+        "scissors",
+        "teddy bear",
+        "hair drier",
+        "toothbrush",
+    ]
+
+
 def draw_boxes(frame, result, prob_threshold, width, height):
     """Draw bounding boxes onto the frame."""
+    loc = 10
     count = 0
+    # As per: https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/public/ssd_mobilenet_v2_coco/ssd_mobilenet_v2_coco.md#converted-model-1
     for box in result[0][0]:  # Output shape is 1x1x100x7
+        label = categories_list()[int(box[1])]
         conf = box[2]
         if conf >= prob_threshold:
             xmin = int(box[3] * width)
             ymin = int(box[4] * height)
             xmax = int(box[5] * width)
             ymax = int(box[6] * height)
+            _y = ymax - loc if ymax - loc > loc else ymax + loc
+
             cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 0, 255), 1)
+
+            cv2.putText(
+                frame,
+                f"{label.title()}: {conf *100:.2f}%",
+                (xmin, _y),
+                cv2.FONT_HERSHEY_COMPLEX,
+                fontScale=0.5,
+                color=(127, 255, 127),
+                thickness=1,
+            )
             count += 1
     return frame, count
 
@@ -222,7 +334,6 @@ def infer_on_stream(args, client):
             # Check how long the person is in the video
             if current_count < last_counted:
                 detected_end = time.time() - detected_start
-                print(detected_end)
 
             last_counted = current_count
         ### TODO: Extract any desired stats from the results ###
@@ -249,6 +360,7 @@ def infer_on_stream(args, client):
     cv2.destroyAllWindows()
     if client:
         client.disconnect()
+
 
 def main():
     """
