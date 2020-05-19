@@ -235,10 +235,26 @@ def draw_boxes(frame, result, prob_threshold, width, height):
 def process_frame(frame, height, width, data_layout=(2, 0, 1)):
     """Helper function for processing frame"""
     p_frame = cv2.resize(frame, (width, height))
+    gray = cv2.cvtColor(p_frame, cv2.COLOR_BGR2GRAY)
+    gray = cv2.GaussianBlur(gray, (21, 21), 0)
+
     # Change data layout from HWC to CHW
     p_frame = p_frame.transpose(data_layout)
     p_frame = p_frame.reshape(1, *p_frame.shape)
-    return p_frame
+    return p_frame, gray
+
+
+def testIntersectionIn(x, y):
+    res = -450 * x + 400 * y + 157500
+    # print(res, (res >= -550) and (res < 550))
+    if (res >= -550) and (res < 550):
+        return True
+
+
+def testIntersectionOut(x, y):
+    res = -450 * x + 400 * y + 180000
+    if (res >= -550) and (res <= 550):
+        return True
 
 
 def infer_on_stream(args, client):
@@ -297,6 +313,15 @@ def infer_on_stream(args, client):
     # person detected counter.
     last_counted = 0
     total_count = 0
+    firstFrame = None
+    textIn = 0
+    textOut = 0
+
+    # Regions of Interest
+    x0_blue, y0_blue = int(orig_width // 2.3), 0
+    x1_blue, y1_blue = int(orig_width // 2.3), orig_height
+    x0_red, y0_red = int(orig_width // 2.3) + 250, 0
+    x1_red, y1_red = int(orig_width // 2.3) + 250, orig_height
 
     while stream.isOpened():
         ### TODO: Read from the video capture ###
@@ -307,12 +332,83 @@ def infer_on_stream(args, client):
         if not grabbed:
             break
 
-        p_frame = process_frame(frame, input_width, input_height)
+        p_frame, gray = process_frame(frame, input_width, input_height)
+
+        # if the first frame is None, initialize it
+        if firstFrame is None:
+            firstFrame = gray
+            continue
+
+        # compute the absolute difference between the current frame and
+        # first frame
+        frameDelta = cv2.absdiff(firstFrame, gray)
+        thresh = cv2.threshold(frameDelta, 50, 255, cv2.THRESH_BINARY)[1]
+        # dilate the thresholded image to fill in holes, then find contours
+        # on thresholded image
+        # Taking a matrix of size 10 as the kernel
+        kernel = np.ones((10, 10), np.uint8)
+
+        thresh = cv2.dilate(thresh, kernel, iterations=2)
+        contours = cv2.findContours(
+            thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )[0]
         start_infer = time.time()
         infer_network.exec_net(p_frame)
         if infer_network.wait() == 0:
             result = infer_network.get_output()
             end_infer = time.time() - start_infer
+            cv2.line(
+                frame, (x0_blue, y0_blue), (x1_blue, y1_blue), (250, 0, 1), 2,
+            )  # blue line
+            cv2.line(
+                frame, (x0_red, y0_red), (x1_red, y1_red), (0, 0, 255), 2,
+            )  # red line
+            if contours:
+                for cnt in contours:
+                    # if the contour is too small, ignore it
+                    if cv2.contourArea(cnt) < 6000:
+                        continue
+                    # compute the bounding box for the contour, draw it on the frame,
+                    # and update the text
+                    (x, y, w, h) = cv2.boundingRect(cnt)
+                    # cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+                    # import IPython; globals().update(locals()); IPython.embed(header='Python Debugger')
+                    rectagleCenterPont = (
+                        (orig_width + x) // 2,
+                        (y - h + orig_height) // 2,
+                    )
+                    # print(rectagleCenterPont)
+                    cv2.circle(frame, rectagleCenterPont, 5, (0, 0, 255), 5)
+
+                    if testIntersectionIn(*rectagleCenterPont):
+                        # if testIntersectionIn((x + w), (y + y + h)):
+                        textIn += 1
+
+                    # if testIntersectionOut((x + x + w), (y + y + h)):
+                    if testIntersectionOut(*rectagleCenterPont):
+                        textOut += 1
+                    # print(textIn)
+                    # print(textOut)
+            cv2.putText(
+                frame,
+                "In: {}".format(str(textIn)),
+                (10, 50),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (0, 0, 255),
+                2,
+            )
+            cv2.putText(
+                frame,
+                "Out: {}".format(str(textOut)),
+                (10, 70),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (0, 0, 255),
+                2,
+            )
+
             # Draw the boxes onto the input
             out_frame, current_count = draw_boxes(
                 frame, result, prob_threshold, orig_width, orig_height
@@ -324,17 +420,16 @@ def infer_on_stream(args, client):
             if args.out:
                 pbar.update(1)
                 out.write(frame)
-
             # Check when a person enters the video the first time.
             if current_count > last_counted:
                 detected_start = time.time()
                 total_count = total_count + current_count - last_counted
-                print(total_count)
+                # print(total_count)
 
             # Check how long the person is in the video
             if current_count < last_counted:
                 detected_end = time.time() - detected_start
-
+                # print(detected_end)
             last_counted = current_count
         ### TODO: Extract any desired stats from the results ###
 
@@ -346,7 +441,10 @@ def infer_on_stream(args, client):
         ### TODO: Send the frame to the FFMPEG server ###
 
         if args.debug:
+            cv2.imshow("Gray Frame", gray)
+            cv2.imshow("Contour Frame", thresh)
             cv2.imshow("Frame", frame)
+
         key = cv2.waitKey(1) & 0xFF
 
         # # if the `q` key was pressed, break from the loop
