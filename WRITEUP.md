@@ -28,20 +28,16 @@ Each of these use cases would be useful because...
 
 ### Models Analysis
 Possible models to consider for the project.
-- [person-detection-action-recognition-0006 AP: 90.70%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-action-recognition-0006/description/person-detection-action-recognition-0006.md)
-  This model can detect these actions: sitting, writing, raising_hand,standing,turned around, lie on the desk
+- [ssd_mobilenet_v2_coco ](https://github.com/opencv/open_model_zoo/blob/master/models/public/ssd_mobilenet_v2_coco/ssd_mobilenet_v2_coco.md)
 - [person-detection-retail-0013 AP: 88.62%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-retail-0013/description/person-detection-retail-0013.md)
 - [pedestrian-detection-adas-0002 AP: 88%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/pedestrian-detection-adas-0002/description/pedestrian-detection-adas-0002.md)
-- [person-detection-action-recognition-0005 AP: 82.79%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-action-recognition-0005/description/person-detection-action-recognition-0005.md)
-  This model can detect these actions: sitting, standing, raising hand.
 - [person-detection-retail-0002 AP: 80%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-retail-0002/description/person-detection-retail-0002.md)
 - [person-detection-asl-0001 AP: 77.68%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-asl-0001/description/person-detection-asl-0001.md)
-- [human-pose-estimation-0001 AP: 42.8%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/human-pose-estimation-0001/description/human-pose-estimation-0001.md)
 
 ### Downloading the model
 
 An example as to how to download a model from the Open Model Zoo and convert to IR.
-https://github.com/opencv/open_model_zoo/blob/master/models/public/ssd_mobilenet_v2_coco/ssd_mobilenet_v2_coco.md
+
 Typical Usage:
 
 - Download the correct model for object detection.

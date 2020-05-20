@@ -45,11 +45,13 @@ MQTT_PORT = 3001
 MQTT_KEEPALIVE_INTERVAL = 60
 
 # person detected counter.
-last_counted = 0
+last_count = 0
 total_count = 0
 firstFrame = None
 textIn = 0
 textOut = 0
+
+average_infer_time = []
 
 
 def build_argparser():
@@ -97,6 +99,9 @@ def build_argparser():
     )
     parser.add_argument(
         "--out", action="store_true", help="Write video to file.",
+    )
+    parser.add_argument(
+        "--ffmpeg", action="store_true", help="Flush video to FFMPEG.",
     )
     parser.add_argument(
         "--debug", action="store_true", help="Show output on screen [debugging].",
@@ -261,10 +266,11 @@ def process_frame(frame, height, width, data_layout=(2, 0, 1)):
     return p_frame, gray
 
 
-def testIntersectionIn(x,y ):
+def testIntersectionIn(x, y):
     pass
 
-def testIntersectionOut(x,y ):
+
+def testIntersectionOut(x, y):
     pass
 
 
@@ -315,7 +321,7 @@ def infer_on_stream(args, client):
     :param client: MQTT client
     :return: None
     """
-    global firstFrame, last_counted, total_count
+    global firstFrame, last_count, total_count, average_infer_time
     # Initialise the class
     infer_network = Network()
     # Set Probability threshold for detections
@@ -376,7 +382,7 @@ def infer_on_stream(args, client):
         if not grabbed:
             break
 
-        p_frame, gray = process_frame(frame, input_width, input_height)
+        p_frame, gray = process_frame(frame, input_height, input_width)
 
         # if the first frame is None, initialize it
         if firstFrame is None:
@@ -401,7 +407,7 @@ def infer_on_stream(args, client):
         if infer_network.wait() == 0:
             result = infer_network.get_output()
             end_infer = time.time() - start_infer
-
+            average_infer_time.append(end_infer)
             message = f"Inference time: {end_infer*1000:.2f}ms"
             cv2.putText(
                 frame, message, (20, 20), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 0), 1
@@ -433,48 +439,54 @@ def infer_on_stream(args, client):
                 frame, result, prob_threshold, orig_width, orig_height
             )
 
+            # Check when a person enters the video the first time.
+            if current_count > last_count:
+                start_time = time.time()
+                total_count += current_count - last_count
+                # client.publish("person", json.dumps({"total": total_count}))
+
+            if current_count < last_count:
+                duration = int(time.time() - start_time)
+                # Publish messages to the MQTT server
+                # client.publish("person/duration",
+                #                json.dumps({"duration": duration}))
+
+            # client.publish("person", json.dumps({"count": current_count}))
+            last_count = current_count
+
             if args.out:
                 pbar.update(1)
                 out.write(frame)
-
-            # Check when a person enters the video the first time.
-            if current_count > last_counted:
-                detected_start = time.time()
-                total_count = total_count + current_count - last_counted
-                # print(total_count)
-
-            # Check how long the person is in the video
-            if current_count < last_counted:
-                detected_end = time.time() - detected_start
-                # print(detected_end)
-            last_counted = current_count
-        ### TODO: Extract any desired stats from the results ###
-
-        ### TODO: Calculate and send relevant information on ###
-        ### current_count, total_count and duration to the MQTT server ###
-        ### Topic "person": keys of "count" and "total" ###
-        ### Topic "person/duration": key of "duration" ###
-
-        ### TODO: Send the frame to the FFMPEG server ###
 
         if args.debug:
             # cv2.imshow("Gray Frame", gray)
             # cv2.imshow("Contour Frame", thresh)
             cv2.imshow("Frame", frame)
 
+        # Send frame to the ffmpeg server
+        if args.ffmpeg:
+            sys.stdout.buffer.write(frame)
+            sys.stdout.flush()
+
         key = cv2.waitKey(1) & 0xFF
 
         # # if the `q` key was pressed, break from the loop
         if key == ord("q"):
             break
+
     # Release the out writer, capture, and destroy any OpenCV windows
+    if client:
+        client.disconnect()
     if args.out:
         pbar.close()
         out.release()
     stream.release()
     cv2.destroyAllWindows()
-    if client:
-        client.disconnect()
+    logger.info(
+        f"Detected {total_count} people with an average inference time: "
+        f"{np.mean(average_infer_time)*1000:.3f}ms using the model: "
+        f"{args.model} @ Probability {prob_threshold*100}% threshold."
+    )
 
 
 def main():
