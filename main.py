@@ -20,21 +20,22 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
+import json
 import os
+import socket
 import sys
 import time
-import socket
-import json
-import numpy as np
-import cv2
-
-from loguru import logger
-import paho.mqtt.client as mqtt
-from tqdm import tqdm
-import matplotlib.pyplot as plt
 
 from argparse import ArgumentParser
+
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+import paho.mqtt.client as mqtt
+
 from inference import Network
+from loguru import logger
+from tqdm import tqdm
 
 # MQTT server environment variables
 HOSTNAME = socket.gethostname()
