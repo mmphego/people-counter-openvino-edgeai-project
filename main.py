@@ -43,6 +43,13 @@ MQTT_HOST = IPADDRESS
 MQTT_PORT = 3001
 MQTT_KEEPALIVE_INTERVAL = 60
 
+# person detected counter.
+last_counted = 0
+total_count = 0
+firstFrame = None
+textIn = 0
+textOut = 0
+
 
 def build_argparser():
     """Parse command line arguments.
@@ -202,11 +209,13 @@ def categories_list():
         "toothbrush",
     ]
 
+
 def plot_frame(frame):
-    img=frame[:,:,0]
+    img = frame[:, :, 0]
     plt.plot(img)
     plt.imshow(img)
     plt.show()
+
 
 def draw_boxes(frame, result, prob_threshold, width, height):
     """Draw bounding boxes onto the frame."""
@@ -250,36 +259,49 @@ def process_frame(frame, height, width, data_layout=(2, 0, 1)):
     return p_frame, gray
 
 
-# def testIntersectionIn(x, y):
-#     x =x+58
-#     y = y+64
-#     res = (x*y)/300
-#     # time.sleep(.4)
-#     print(res, (res >= -700) and (res < 700))
-#     if (res >= -550) and (res < 550):
-#         return True
-# def testIntersectionOut(x, y):
-#     # res = -500 * x + 400 * y + 157500
-#     res = -500 * x + 400 * y + 180000
-#     print(res)
-#     if ((res >= -5500) and (res < 5500)):
-#         print(str(res))
-#         return True
-#     return False
+def testIntersectionIn(x,y ):
+    pass
 
-def testIntersectionIn(x, y, x_roi, y_roi):
-    if x < x_roi and y < y_roi:
-        res = int(abs(-x_roi * x + y_roi * y)/ (x_roi+y_roi))
-        print(res)
-        if res <= 10:
-            print("detected!!!")
-            # print(res)
-            return True
-        # time.sleep(0.05)
-    # if ((res >= -550) and (res < 550)):
-    #     print(str(res))
-    #     return True
-    # return False
+def testIntersectionOut(x,y ):
+    pass
+
+
+def find_intersections(
+    contours, frame, x0, y0, x1, y1,
+):
+    global textIn, textOut
+
+    if contours:
+        for cnt in contours:
+            # if the contour is too small, ignore it
+            if cv2.contourArea(cnt) < 12000:
+                continue
+            cv2.line(
+                frame, x0, y0, (250, 0, 1), 2,
+            )  # blue line
+            cv2.line(
+                frame, x1, y1, (0, 0, 255), 2,
+            )  # red line
+
+            # compute the bounding box for the contour, draw it on the frame,
+            # and update the text
+            (xmin, ymin, xmax, ymax) = cv2.boundingRect(cnt)
+
+            cv2.rectangle(
+                frame, (xmin, ymin), (xmin + xmax, ymin + ymax), (0, 255, 0), 2
+            )
+
+            rectagleCenterPont = ((2 * xmin + xmax) // 2, (2 * ymin + ymax) // 2)
+
+            cv2.circle(frame, rectagleCenterPont, 1, (0, 0, 255), 1)
+
+            if testIntersectionIn(xmin, ymax):
+                textIn += 1
+
+            if testIntersectionOut(xmin, ymax):
+                textOut += 1
+
+    return textIn, textOut
 
 
 def infer_on_stream(args, client):
@@ -291,6 +313,7 @@ def infer_on_stream(args, client):
     :param client: MQTT client
     :return: None
     """
+    global firstFrame, last_counted, total_count
     # Initialise the class
     infer_network = Network()
     # Set Probability threshold for detections
@@ -302,14 +325,21 @@ def infer_on_stream(args, client):
         device=args.device,
         cpu_extension=args.cpu_extension if args.cpu_extension else None,
     )
-    ### TODO: Handle the input stream ###
-    logger.info("Processing video...")
+    video_file = args.input
     writer = None
-    stream = cv2.VideoCapture(args.input)
-    stream.open(args.input)
+    logger.info(f"Processing video: {video_file}...")
+    stream = cv2.VideoCapture(video_file)
+    stream.open(video_file)
+
     # Grab the shape of the input
     orig_width = int(stream.get(3))
     orig_height = int(stream.get(4))
+
+    # Regions of Interest
+    blue_line_start = orig_width + 150, orig_height - 50
+    blue_line_end = 0, 100
+    red_line_start = orig_width, orig_height - 100
+    red_line_end = 200, 0
 
     if args.out:
         # Create a video writer for the output video
@@ -329,46 +359,12 @@ def infer_on_stream(args, client):
     # W - width
     # C - channel
     batch_size, channel, input_height, input_width = infer_network.get_input_shape()
-    ### TODO: Loop until stream is over ###
+
     if not stream.isOpened():
         msg = "Cannot open video source!!!"
         logger.error(msg)
         raise RuntimeError(msg)
 
-    # person detected counter.
-    last_counted = 0
-    total_count = 0
-    firstFrame = None
-    textIn = 0
-    textOut = 0
-
-    # Regions of Interest
-    # x0_blue, y0_blue = 100,int(orig_width)-100
-    # x1_blue, y1_blue =  orig_height-100, 100
-    x0_blue, y0_blue = orig_width+150, orig_height-50
-    x1_blue, y1_blue = 0, 100
-    x0_red, y0_red = orig_width, orig_height-100
-    x1_red, y1_red = 200, 0
-    print(x0_blue, y0_blue)     # 384 0
-    print(x1_blue, y1_blue)     # 384 432
-    print(x0_red, y0_red)       # 534 0
-    print(x1_red, y1_red)       # 534 432
-    print((orig_width//2-100, 450), (orig_width//2+150, 450))
-    print((orig_width//2-100, 470), (orig_width//2+150, 470))
-    enter_ROI_xmin =x0_blue
-    enter_ROI_ymin = y1_blue
-    exit_ROI_xmin = 550
-    exit_ROI_ymin = 410
-    # return
-
-    # it is based on previous value
-    # for width 800 it was set to 12000
-    # for variable width I set it to 12000 = width^2 * k
-    # k is calculated as 0.01875
-    contourAreaTreshold = int((orig_width**2) * 0.01875)
-    # contourAreaTreshold = 12000
-
-    print(contourAreaTreshold)
     while stream.isOpened():
         ### TODO: Read from the video capture ###
         # Grab the next stream.
@@ -389,8 +385,8 @@ def infer_on_stream(args, client):
         # first frame
         frameDelta = cv2.absdiff(firstFrame, gray)
         _, thresh = cv2.threshold(frameDelta, 50, 255, cv2.THRESH_BINARY)
-        # dilate the thresholded image to fill in holes, then find contours
-        # on thresholded image
+        # dilate the threshold image to fill in holes, then find contours
+        # on threshold image
         # Taking a matrix of size 10 as the kernel
         kernel = np.ones((5, 5), np.uint8)
 
@@ -403,64 +399,26 @@ def infer_on_stream(args, client):
         if infer_network.wait() == 0:
             result = infer_network.get_output()
             end_infer = time.time() - start_infer
-            cv2.drawContours(frame, contours, -1, (255,255,200), 2)
-            if contours:
-                for cnt in contours:
-                    # if the contour is too small, ignore it
-                    if cv2.contourArea(cnt) < contourAreaTreshold:
-                        continue
-                    cv2.line(
-                        frame, (x0_blue, y0_blue), (x1_blue, y1_blue), (250, 0, 1), 2,
-                    )  # blue line
-                    cv2.line(
-                        frame, (x0_red, y0_red), (x1_red, y1_red), (0, 0, 255), 2,
-                    )  # red line
+            # Display contour: Useful for debugging.
+            # cv2.drawContours(frame, contours, -1, (0, 0, 0), 2)
 
-                    # compute the bounding box for the contour, draw it on the frame,
-                    # and update the text
-                    # print("-"*80)
-                    # print(f"Blue line: {(x0_blue, y0_blue), (x1_blue, y1_blue)}")
-                    (xmin, ymin, xmax, ymax) = cv2.boundingRect(cnt)
-                    # print(f"x:{x}, y={y}, xmax={xmax}, ymax={ymax}")
-                    # import IPytymaxon; globals().update(locals()); IPytymaxon.embed(ymaxeader='Pytymaxon Debugger')
-                    # rectagleCenterPont = (
-                    #     (orig_xmaxidtymax + x) // 2,
-                    #     (y - ymax + orig_ymaxeigymaxt) // 2,
-                    # )
-                    cv2.rectangle(frame, (xmin,ymin), (xmin+xmax, ymin+ymax), (0,255,0), 2)
-                    rectagleCenterPont = ((2*xmin +  xmax)//2 , (2*ymin + ymax)//2)
-                    # print(f"rectangle: {rectagleCenterPont}")
-                    # rectagleCenterPont = (x0_blue + xmax, x1_blue - ymax)
-                    # cv2.circle(frame, rectagleCenterPont, 1, (0, 0, 255), 1)
+            # TODO: Fix the logic of counting people going in/out of ROI
+            # Possible solution:
+            # Assuming that people enter from left and exit on right.
+            # Create the equation for line y=mx+c where m is slope.
+            # We assume y direction is going up (you'll need to inverse the sign).
+            # Substitute x_person into equation to calculate y_line.
+            # If y_person > y_line, then it is above the line.
+            # I think a better way is to use a box around the polling station and
+            # check if the person is within the box.
 
-                    # if testIntersectionIn(*rectagleCenterPont):
-                    if testIntersectionIn(xmin, ymax, enter_ROI_xmin, enter_ROI_ymin):
-                    # if testIntersectionIn((x + xmax), (ymin + ymin + ymax)):
-                        textIn += 1
-                    cv2.circle(frame, ((2*xmin + xmax)//2, (2*ymin  + ymax)//2), 5, (0, 0, 255), 5)
-
-                    # if testIntersectionOut((x + xmax)//2, (ymin  + ymax)//2):
-                    # if testIntersectionOut(*rectagleCenterPont):
-                    #     textOut += 1
-                    # # print(textIn)
-                    # # print(textOut)
-            cv2.putText(
-                frame,
-                "In: {}".format(str(textIn)),
-                (10, 50),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
-                (0, 0, 255),
-                2,
-            )
-            # cv2.putText(
+            # textIn, textOut = find_intersections(
+            #     contours,
             #     frame,
-            #     "In: {}".format(str(textOut)),
-            #     (10, 70),
-            #     cv2.FONT_HERSHEY_SIMPLEX,
-            #     0.5,
-            #     (0, 0, 255),
-            #     2,
+            #     blue_line_start,
+            #     blue_line_end,
+            #     red_line_start,
+            #     red_line_end,
             # )
 
             # Draw the boxes onto the input
@@ -469,7 +427,7 @@ def infer_on_stream(args, client):
             )
             message = f"Inference time: {end_infer*1000:.2f}ms"
             cv2.putText(
-                frame, message, (20, 20), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 1
+                frame, message, (20, 20), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 0), 1
             )
             if args.out:
                 pbar.update(1)
