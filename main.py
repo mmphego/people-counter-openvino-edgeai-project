@@ -31,6 +31,7 @@ import cv2
 from loguru import logger
 import paho.mqtt.client as mqtt
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 from argparse import ArgumentParser
 from inference import Network
@@ -201,6 +202,11 @@ def categories_list():
         "toothbrush",
     ]
 
+def plot_frame(frame):
+    img=frame[:,:,0]
+    plt.plot(img)
+    plt.imshow(img)
+    plt.show()
 
 def draw_boxes(frame, result, prob_threshold, width, height):
     """Draw bounding boxes onto the frame."""
@@ -235,8 +241,8 @@ def draw_boxes(frame, result, prob_threshold, width, height):
 def process_frame(frame, height, width, data_layout=(2, 0, 1)):
     """Helper function for processing frame"""
     p_frame = cv2.resize(frame, (width, height))
-    gray = cv2.cvtColor(p_frame, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray, (21, 21), 0)
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
     # Change data layout from HWC to CHW
     p_frame = p_frame.transpose(data_layout)
@@ -244,17 +250,36 @@ def process_frame(frame, height, width, data_layout=(2, 0, 1)):
     return p_frame, gray
 
 
-def testIntersectionIn(x, y):
-    res = -450 * x + 400 * y + 157500
-    # print(res, (res >= -550) and (res < 550))
-    if (res >= -550) and (res < 550):
-        return True
+# def testIntersectionIn(x, y):
+#     x =x+58
+#     y = y+64
+#     res = (x*y)/300
+#     # time.sleep(.4)
+#     print(res, (res >= -700) and (res < 700))
+#     if (res >= -550) and (res < 550):
+#         return True
+# def testIntersectionOut(x, y):
+#     # res = -500 * x + 400 * y + 157500
+#     res = -500 * x + 400 * y + 180000
+#     print(res)
+#     if ((res >= -5500) and (res < 5500)):
+#         print(str(res))
+#         return True
+#     return False
 
-
-def testIntersectionOut(x, y):
-    res = -450 * x + 400 * y + 180000
-    if (res >= -550) and (res <= 550):
-        return True
+def testIntersectionIn(x, y, x_roi, y_roi):
+    if x < x_roi and y < y_roi:
+        res = int(abs(-x_roi * x + y_roi * y)/ (x_roi+y_roi))
+        print(res)
+        if res <= 10:
+            print("detected!!!")
+            # print(res)
+            return True
+        # time.sleep(0.05)
+    # if ((res >= -550) and (res < 550)):
+    #     print(str(res))
+    #     return True
+    # return False
 
 
 def infer_on_stream(args, client):
@@ -318,11 +343,32 @@ def infer_on_stream(args, client):
     textOut = 0
 
     # Regions of Interest
-    x0_blue, y0_blue = int(orig_width // 2.3), 0
-    x1_blue, y1_blue = int(orig_width // 2.3), orig_height
-    x0_red, y0_red = int(orig_width // 2.3) + 250, 0
-    x1_red, y1_red = int(orig_width // 2.3) + 250, orig_height
+    # x0_blue, y0_blue = 100,int(orig_width)-100
+    # x1_blue, y1_blue =  orig_height-100, 100
+    x0_blue, y0_blue = orig_width+150, orig_height-50
+    x1_blue, y1_blue = 0, 100
+    x0_red, y0_red = orig_width, orig_height-100
+    x1_red, y1_red = 200, 0
+    print(x0_blue, y0_blue)     # 384 0
+    print(x1_blue, y1_blue)     # 384 432
+    print(x0_red, y0_red)       # 534 0
+    print(x1_red, y1_red)       # 534 432
+    print((orig_width//2-100, 450), (orig_width//2+150, 450))
+    print((orig_width//2-100, 470), (orig_width//2+150, 470))
+    enter_ROI_xmin =x0_blue
+    enter_ROI_ymin = y1_blue
+    exit_ROI_xmin = 550
+    exit_ROI_ymin = 410
+    # return
 
+    # it is based on previous value
+    # for width 800 it was set to 12000
+    # for variable width I set it to 12000 = width^2 * k
+    # k is calculated as 0.01875
+    contourAreaTreshold = int((orig_width**2) * 0.01875)
+    # contourAreaTreshold = 12000
+
+    print(contourAreaTreshold)
     while stream.isOpened():
         ### TODO: Read from the video capture ###
         # Grab the next stream.
@@ -342,54 +388,62 @@ def infer_on_stream(args, client):
         # compute the absolute difference between the current frame and
         # first frame
         frameDelta = cv2.absdiff(firstFrame, gray)
-        thresh = cv2.threshold(frameDelta, 50, 255, cv2.THRESH_BINARY)[1]
+        _, thresh = cv2.threshold(frameDelta, 50, 255, cv2.THRESH_BINARY)
         # dilate the thresholded image to fill in holes, then find contours
         # on thresholded image
         # Taking a matrix of size 10 as the kernel
-        kernel = np.ones((10, 10), np.uint8)
+        kernel = np.ones((5, 5), np.uint8)
 
-        thresh = cv2.dilate(thresh, kernel, iterations=2)
-        contours = cv2.findContours(
-            thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )[0]
+        thresh = cv2.dilate(thresh, kernel, iterations=3)
+        contours, _ = cv2.findContours(
+            thresh.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+        )
         start_infer = time.time()
         infer_network.exec_net(p_frame)
         if infer_network.wait() == 0:
             result = infer_network.get_output()
             end_infer = time.time() - start_infer
-            cv2.line(
-                frame, (x0_blue, y0_blue), (x1_blue, y1_blue), (250, 0, 1), 2,
-            )  # blue line
-            cv2.line(
-                frame, (x0_red, y0_red), (x1_red, y1_red), (0, 0, 255), 2,
-            )  # red line
+            cv2.drawContours(frame, contours, -1, (255,255,200), 2)
             if contours:
                 for cnt in contours:
                     # if the contour is too small, ignore it
-                    if cv2.contourArea(cnt) < 6000:
+                    if cv2.contourArea(cnt) < contourAreaTreshold:
                         continue
+                    cv2.line(
+                        frame, (x0_blue, y0_blue), (x1_blue, y1_blue), (250, 0, 1), 2,
+                    )  # blue line
+                    cv2.line(
+                        frame, (x0_red, y0_red), (x1_red, y1_red), (0, 0, 255), 2,
+                    )  # red line
+
                     # compute the bounding box for the contour, draw it on the frame,
                     # and update the text
-                    (x, y, w, h) = cv2.boundingRect(cnt)
-                    # cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                    # print("-"*80)
+                    # print(f"Blue line: {(x0_blue, y0_blue), (x1_blue, y1_blue)}")
+                    (xmin, ymin, xmax, ymax) = cv2.boundingRect(cnt)
+                    # print(f"x:{x}, y={y}, xmax={xmax}, ymax={ymax}")
+                    # import IPytymaxon; globals().update(locals()); IPytymaxon.embed(ymaxeader='Pytymaxon Debugger')
+                    # rectagleCenterPont = (
+                    #     (orig_xmaxidtymax + x) // 2,
+                    #     (y - ymax + orig_ymaxeigymaxt) // 2,
+                    # )
+                    cv2.rectangle(frame, (xmin,ymin), (xmin+xmax, ymin+ymax), (0,255,0), 2)
+                    rectagleCenterPont = ((2*xmin +  xmax)//2 , (2*ymin + ymax)//2)
+                    # print(f"rectangle: {rectagleCenterPont}")
+                    # rectagleCenterPont = (x0_blue + xmax, x1_blue - ymax)
+                    # cv2.circle(frame, rectagleCenterPont, 1, (0, 0, 255), 1)
 
-                    # import IPython; globals().update(locals()); IPython.embed(header='Python Debugger')
-                    rectagleCenterPont = (
-                        (orig_width + x) // 2,
-                        (y - h + orig_height) // 2,
-                    )
-                    # print(rectagleCenterPont)
-                    cv2.circle(frame, rectagleCenterPont, 5, (0, 0, 255), 5)
-
-                    if testIntersectionIn(*rectagleCenterPont):
-                        # if testIntersectionIn((x + w), (y + y + h)):
+                    # if testIntersectionIn(*rectagleCenterPont):
+                    if testIntersectionIn(xmin, ymax, enter_ROI_xmin, enter_ROI_ymin):
+                    # if testIntersectionIn((x + xmax), (ymin + ymin + ymax)):
                         textIn += 1
+                    cv2.circle(frame, ((2*xmin + xmax)//2, (2*ymin  + ymax)//2), 5, (0, 0, 255), 5)
 
-                    # if testIntersectionOut((x + x + w), (y + y + h)):
-                    if testIntersectionOut(*rectagleCenterPont):
-                        textOut += 1
-                    # print(textIn)
-                    # print(textOut)
+                    # if testIntersectionOut((x + xmax)//2, (ymin  + ymax)//2):
+                    # if testIntersectionOut(*rectagleCenterPont):
+                    #     textOut += 1
+                    # # print(textIn)
+                    # # print(textOut)
             cv2.putText(
                 frame,
                 "In: {}".format(str(textIn)),
@@ -399,15 +453,15 @@ def infer_on_stream(args, client):
                 (0, 0, 255),
                 2,
             )
-            cv2.putText(
-                frame,
-                "Out: {}".format(str(textOut)),
-                (10, 70),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
-                (0, 0, 255),
-                2,
-            )
+            # cv2.putText(
+            #     frame,
+            #     "In: {}".format(str(textOut)),
+            #     (10, 70),
+            #     cv2.FONT_HERSHEY_SIMPLEX,
+            #     0.5,
+            #     (0, 0, 255),
+            #     2,
+            # )
 
             # Draw the boxes onto the input
             out_frame, current_count = draw_boxes(
@@ -441,8 +495,8 @@ def infer_on_stream(args, client):
         ### TODO: Send the frame to the FFMPEG server ###
 
         if args.debug:
-            cv2.imshow("Gray Frame", gray)
-            cv2.imshow("Contour Frame", thresh)
+            # cv2.imshow("Gray Frame", gray)
+            # cv2.imshow("Contour Frame", thresh)
             cv2.imshow("Frame", frame)
 
         key = cv2.waitKey(1) & 0xFF
