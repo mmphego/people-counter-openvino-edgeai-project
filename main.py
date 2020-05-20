@@ -211,6 +211,7 @@ def categories_list():
 
 
 def plot_frame(frame):
+    """Helper function for finding image coordinates/px"""
     img = frame[:, :, 0]
     plt.plot(img)
     plt.imshow(img)
@@ -399,6 +400,11 @@ def infer_on_stream(args, client):
         if infer_network.wait() == 0:
             result = infer_network.get_output()
             end_infer = time.time() - start_infer
+
+            message = f"Inference time: {end_infer*1000:.2f}ms"
+            cv2.putText(
+                frame, message, (20, 20), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 0), 1
+            )
             # Display contour: Useful for debugging.
             # cv2.drawContours(frame, contours, -1, (0, 0, 0), 2)
 
@@ -425,13 +431,11 @@ def infer_on_stream(args, client):
             out_frame, current_count = draw_boxes(
                 frame, result, prob_threshold, orig_width, orig_height
             )
-            message = f"Inference time: {end_infer*1000:.2f}ms"
-            cv2.putText(
-                frame, message, (20, 20), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 0), 1
-            )
+
             if args.out:
                 pbar.update(1)
                 out.write(frame)
+
             # Check when a person enters the video the first time.
             if current_count > last_counted:
                 detected_start = time.time()
