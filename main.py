@@ -43,6 +43,7 @@ IPADDRESS = socket.gethostbyname(HOSTNAME)
 MQTT_HOST = IPADDRESS
 MQTT_PORT = 3001
 MQTT_KEEPALIVE_INTERVAL = 60
+TIMEOUT = 60
 
 # person detected counter.
 last_count = 0
@@ -113,7 +114,7 @@ def build_argparser():
 def connect_mqtt():
     client = mqtt.Client()
     try:
-        client.connect(MQTT_HOST, MQTT_PORT, 60)
+        client.connect(MQTT_HOST, MQTT_PORT, TIMEOUT)
         return client
     except Exception as err:
         logger.error(f"MQTT client -> {str(err)}")
