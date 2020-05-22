@@ -11,14 +11,15 @@ Some of the potential reasons for handling custom layers are...
 
 ## Comparing Model Performance
 
-My method(s) to compare models before and after conversion to Intermediate Representations
-were...
+Some of the models evaluated before opting for the one used for this project:
 
-The difference between model accuracy pre- and post-conversion was...
-
-The size of the model pre- and post-conversion was...
-
-The inference time of the model pre- and post-conversion was...
+| Model Name | Model Size [*Post Conversion*] (MB) | Average Precision (AP) (%)| Inference Ave. Time (ms) | N. People Detected | Completion Time (s)| Running Project |
+|--|--|--|--|--|--|--|
+| [person-detection-retail-0002](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-retail-0002/description/person-detection-retail-0002.md)| 6.19| 80.14|47.684| 0| 73.40 |![image](https://user-images.githubusercontent.com/7910856/82674240-4609a300-9c43-11ea-84dd-d1cdae37a4f9.png) |
+| [person-detection-retail-0013](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-retail-0013/description/person-detection-retail-0013.md)| 1.38 | 88.62|14.358  |11 | 28.63 | ![image](https://user-images.githubusercontent.com/7910856/82669230-5f0e5600-9c3b-11ea-85a6-fadc49e280d4.png)|
+| [ssd_mobilenet_v2_coco](https://github.com/opencv/open_model_zoo/blob/master/models/public/ssd_mobilenet_v2_coco/ssd_mobilenet_v2_coco.md)| 64.16| |21.949|30| 38.17 |![image](https://user-images.githubusercontent.com/7910856/82669420-b1e80d80-9c3b-11ea-8608-4a40729b14ea.png)|
+| [ssdlite_mobilenet_v2_coco](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/public/ssdlite_mobilenet_v2/ssdlite_mobilenet_v2.md)| 17.07 | |11.791 | 40 | 25.97| ![image](https://user-images.githubusercontent.com/7910856/82672628-e0b4b280-9c40-11ea-9782-c6413e265bc0.png)|
+| [pedestrian-detection-adas-0002](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/pedestrian-detection-adas-0002/description/pedestrian-detection-adas-0002.md) | 2.22| 88|14.435 |71 |27.36|![image](https://user-images.githubusercontent.com/7910856/82670470-7c442400-9c3d-11ea-9c7f-32ca935bdee5.png)|
 
 ## Assess Model Use Cases
 
@@ -26,15 +27,7 @@ Some of the potential use cases of the people counter app are...
 
 Each of these use cases would be useful because...
 
-### Models Analysis
-Possible models to consider for the project.
-- [ssd_mobilenet_v2_coco ](https://github.com/opencv/open_model_zoo/blob/master/models/public/ssd_mobilenet_v2_coco/ssd_mobilenet_v2_coco.md)
-- [person-detection-retail-0013 AP: 88.62%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-retail-0013/description/person-detection-retail-0013.md)
-- [pedestrian-detection-adas-0002 AP: 88%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/pedestrian-detection-adas-0002/description/pedestrian-detection-adas-0002.md)
-- [person-detection-retail-0002 AP: 80%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-retail-0002/description/person-detection-retail-0002.md)
-- [person-detection-asl-0001 AP: 77.68%](https://github.com/opencv/open_model_zoo/blob/7d235755e2d17f6186b11243a169966e4f05385a/models/intel/person-detection-asl-0001/description/person-detection-asl-0001.md)
-
-### Downloading the model
+## Downloading the model
 
 An example as to how to download a model from the Open Model Zoo and convert to IR.
 
@@ -45,7 +38,8 @@ Typical Usage:
 DOCKERCONT="mmphego/intel-openvino"
 docker run --rm -ti -v "$PWD":/app "$DOCKERCONT" \
 /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/downloader.py \
---name ssd_mobilenet_v2_coco
+--name ssd_mobilenet_v2_coco \
+--precision FP16
 ```
 
 - Convert TensorFlow model to Intermediate Representation
@@ -88,3 +82,5 @@ In investigating potential people counter models, I tried each of the following 
   - I converted the model to an Intermediate Representation with the following arguments...
   - The model was insufficient for the app because...
   - I tried to improve the model for the app by...
+
+//////////////////////////////////////////////////////////////////
