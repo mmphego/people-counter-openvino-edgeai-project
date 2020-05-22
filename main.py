@@ -328,11 +328,15 @@ def infer_on_stream(args, client):
     prob_threshold = args.prob_threshold
 
     ### TODO: Load the model through `infer_network` ###
-    infer_network.load_model(
+    try:
+        infer_network.load_model(
         model_xml=args.model,
         device=args.device,
         cpu_extension=args.cpu_extension if args.cpu_extension else None,
-    )
+        )
+    except Exception:
+        logger.exception("Failed to load the model")
+        raise
     video_file = args.input
     writer = None
     logger.info(f"Processing video: {video_file}...")
@@ -485,7 +489,8 @@ def infer_on_stream(args, client):
     logger.info(
         f"Detected {total_count} people with an average inference time: "
         f"{np.mean(average_infer_time)*1000:.3f}ms using the model: "
-        f"{args.model} @ Probability {prob_threshold*100}% threshold."
+        f"{args.model} {infer_network._model_size:.2f}MB @ "
+        f"Probability {prob_threshold*100}% threshold."
     )
 
 
@@ -500,8 +505,10 @@ def main():
     # Connect to the MQTT server
     client = connect_mqtt()
     # Perform inference on the input stream
+    start_time = time.time()
     infer_on_stream(args, client)
-
+    end_time = time.time() - start_time
+    logger.info(f"It took {end_time:.2f}s to complete the inference and stream.")
 
 if __name__ == "__main__":
 

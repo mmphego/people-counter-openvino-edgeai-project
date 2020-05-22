@@ -63,6 +63,8 @@ class Network:
         ### TODO: Load the model ###
         # https://docs.openvinotoolkit.org/latest/ie_python_api/classie__api_1_1IENetwork.html
         model_bin = os.path.splitext(model_xml)[0] + ".bin"
+        assert os.path.isfile(model_bin) and os.path.isfile(model_xml)
+        self._model_size = os.stat(model_bin).st_size / 1024. ** 2
         self.network = self.ie_core.read_network(model=model_xml, weights=model_bin)
 
         # Load the IENetwork into the plugin
