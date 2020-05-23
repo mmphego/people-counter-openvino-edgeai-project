@@ -26,7 +26,6 @@ import os
 import sys
 
 import numpy as np
-from loguru import logger
 
 from openvino.inference_engine import IENetwork, IECore
 
@@ -65,7 +64,10 @@ class Network:
         model_bin = os.path.splitext(model_xml)[0] + ".bin"
         assert os.path.isfile(model_bin) and os.path.isfile(model_xml)
         self._model_size = os.stat(model_bin).st_size / 1024. ** 2
-        self.network = self.ie_core.read_network(model=model_xml, weights=model_bin)
+        try:
+            self.network = self.ie_core.read_network(model=model_xml, weights=model_bin)
+        except AttributeError:
+            self.network = IENetwork(model=model_xml, weights=model_bin)
 
         # Load the IENetwork into the plugin
         self.exec_network = self.ie_core.load_network(

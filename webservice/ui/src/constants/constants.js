@@ -16,6 +16,7 @@ export const HTTP = {
   CAMERA_FEED: `${SETTINGS.CAMERA_FEED_SERVER}/facstream.mjpeg`, // POST
 };
 
+console.log(HTTP)
 export const MQTT = {
   MQTT_SERVER: process.env.MQTT_SERVER ||"wss://" + WS_HOST + "-3002.udacity-student-workspaces.com",
   TOPICS: {
@@ -23,3 +24,5 @@ export const MQTT = {
     DURATION: "person/duration", // how long were they on frame
   },
 };
+
+console.log(MQTT)

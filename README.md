@@ -2,7 +2,8 @@
 
 | Details            |              |
 |-----------------------|---------------|
-| Programming Language: |  Python 3.5 or 3.6 |
+| Programming Language: |  Python 3.6+ |
+| Intel OpenVINO ToolKit | 2020.2.120 |
 
 ![people-counter-python](./images/people-counter-image.png)
 
@@ -197,6 +198,8 @@ Sat May 23 05:51:10 2020 FFserver started.
 #### Local Development
 Open new terminal and run the below commands.
 ```
+wget https://github.com/vot/ffbinaries-prebuilt/releases/download/v3.4/ffserver-3.4-linux-64.zip
+sudo unzip ffserver-3.4-linux-64.zip /usr/local/bin
 sudo ffserver -f ./ffmpeg/server.conf
 ```
 
