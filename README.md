@@ -160,66 +160,11 @@ You should see the following log output:
 > cross-env NODE_ENV=development webpack-dev-server --history-api-fallback --watch --hot --inline
 
 Project is running at http://0.0.0.0:3000/
-webpack output is served from /
-404s will fallback to /index.html
-(node:24) DeprecationWarning: loaderUtils.parseQuery() received a non-string value which can be problematic, see https://github.com/webpack/loader-utils/issues/56
-parseQuery() will be replaced with getOptions() in the next major version of loader-utils.
-Hash: f6b0c46bf69f8dc3eb1a
-Version: webpack 2.7.0
-Time: 4282ms
-                                   Asset       Size  Chunks                    Chunk Names
-                               bundle.js    15.6 MB       0  [emitted]  [big]  main
-                              index.html  414 bytes          [emitted]         
-    assets/fonts/fontawesome-webfont.eot     166 kB          [emitted]         
-    assets/fonts/fontawesome-webfont.svg     444 kB          [emitted]  [big]  
-    assets/fonts/fontawesome-webfont.ttf     166 kB          [emitted]         
-   assets/fonts/fontawesome-webfont.woff      98 kB          [emitted]         
-  assets/fonts/fontawesome-webfont.woff2    77.2 kB          [emitted]         
-        assets/fonts/IntelClear-Bold.eot    74.2 kB          [emitted]         
-        assets/fonts/IntelClear-Bold.ttf      74 kB          [emitted]         
-       assets/fonts/IntelClear-Bold.woff    39.2 kB          [emitted]         
-  assets/fonts/IntelClear-BoldItalic.eot      80 kB          [emitted]         
-  assets/fonts/IntelClear-BoldItalic.ttf    79.8 kB          [emitted]         
- assets/fonts/IntelClear-BoldItalic.woff    41.8 kB          [emitted]         
-      assets/fonts/IntelClear-Italic.eot    77.7 kB          [emitted]         
-      assets/fonts/IntelClear-Italic.ttf    77.5 kB          [emitted]         
-     assets/fonts/IntelClear-Italic.woff    40.9 kB          [emitted]         
-       assets/fonts/IntelClear-Light.eot    71.6 kB          [emitted]         
-       assets/fonts/IntelClear-Light.ttf    71.4 kB          [emitted]         
-      assets/fonts/IntelClear-Light.woff    38.5 kB          [emitted]         
- assets/fonts/IntelClear-LightItalic.eot    77.7 kB          [emitted]         
- assets/fonts/IntelClear-LightItalic.ttf    77.4 kB          [emitted]         
-assets/fonts/IntelClear-LightItalic.woff      41 kB          [emitted]         
-     assets/fonts/IntelClear-Regular.eot    73.6 kB          [emitted]         
-     assets/fonts/IntelClear-Regular.ttf    73.4 kB          [emitted]         
-    assets/fonts/IntelClear-Regular.woff    39.7 kB          [emitted]         
-         assets/images/background-02.jpg     246 kB          [emitted]         
-            assets/fonts/FontAwesome.otf     135 kB          [emitted]         
-  assets/images/intel-people-counter.svg    7.72 kB          [emitted]         
-                 assets/images/Group.svg    6.42 kB          [emitted]         
-chunk    {0} bundle.js (main) 6.15 MB [entry] [rendered]
-    [5] ./~/react/react.js 56 bytes {0} [built]
-   [80] ./~/redux/es/index.js 1.08 kB {0} [built]
-  [114] ./~/react-redux/es/index.js 229 bytes {0} [built]
-  [124] ./~/url/url.js 23.3 kB {0} [built]
-  [324] ./~/react-router-redux/es/index.js 420 bytes {0} [built]
-  [355] (webpack)/hot/emitter.js 77 bytes {0} [built]
-  [357] ./src/index.jsx 2.74 kB {0} [built]
-  [358] (webpack)-dev-server/client?http://0.0.0.0:3000 7.93 kB {0} [built]
-  [359] (webpack)/hot/dev-server.js 1.57 kB {0} [built]
-  [366] ./src/components/navigation/ConnectedNavigation.jsx 850 bytes {0} [built]
-  [368] ./src/dux/reducers.js 509 bytes {0} [built]
-  [370] ./src/features/stats/ConnectedStats.jsx 884 bytes {0} [built]
-  [372] ./src/pages/monitor/Monitor.jsx 2.6 kB {0} [built]
-  [442] ./~/history/createBrowserHistory.js 146 bytes {0} [built]
-  [744] multi (webpack)-dev-server/client?http://0.0.0.0:3000 webpack/hot/dev-server ./src/index.jsx 52 bytes {0} [built]
-     + 730 hidden modules
-Child html-webpack-plugin for "index.html":
-    chunk    {0} index.html 402 bytes [entry] [rendered]
-        [0] ./~/html-webpack-plugin/lib/loader.js!./src/index.html 402 bytes {0} [built]
+
 webpack: Compiled successfully.
 ```
 
+#### Local Development
 Open new terminal and run below commands.
 ```
 cd webservice/ui
@@ -233,6 +178,23 @@ webpack: Compiled successfully
 
 ### Step 3 - FFmpeg Server
 
+#### Docker Container
+
+
+```bash
+docker run \
+-p 3004:3004 \
+--network="openvino" \
+--name "ffmpeg-server" \
+-ti mmphego/ffmpeg-server
+```
+
+You should see the following output:
+```bash
+Sat May 23 05:51:10 2020 FFserver started.
+```
+
+#### Local Development
 Open new terminal and run the below commands.
 ```
 sudo ffserver -f ./ffmpeg/server.conf

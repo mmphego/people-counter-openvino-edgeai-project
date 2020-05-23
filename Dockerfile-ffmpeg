@@ -1,0 +1,4 @@
+FROM mmphego/intel-openvino
+ADD ./ffmpeg /app/ffmpeg
+WORKDIR /app/
+CMD ["ffserver", "-f", "./ffmpeg/server.conf"]
