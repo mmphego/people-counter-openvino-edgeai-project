@@ -1,0 +1,5 @@
+FROM mmphego/intel-openvino
+ADD ./webservice /app/webservice
+WORKDIR /app/webservice/ui
+RUN npm install -g && npm audit fix
+CMD ["npm", "run", "dev"]

@@ -29,14 +29,12 @@ import time
 from argparse import ArgumentParser
 
 import cv2
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 import paho.mqtt.client as mqtt
 
 from inference import Network
-from loguru import logger
-from tqdm import tqdm
-
+# from tqdm import tqdm
 # MQTT server environment variables
 HOSTNAME = socket.gethostname()
 IPADDRESS = socket.gethostbyname(HOSTNAME)
@@ -115,18 +113,8 @@ def connect_mqtt():
     client = mqtt.Client()
     try:
         client.connect(MQTT_HOST, MQTT_PORT, TIMEOUT)
-    except Exception as err:
-        MQTT_HOST = "mosca-server"
-        try:
-            logger.warn(
-                f"Failed to connect to {MQTT_HOST}:{MQTT_PORT}, trying docker container"
-                f" MQTT server on {MQTT_HOST}:{MQTT_PORT}")
-            client.connect(MQTT_HOST, MQTT_PORT, TIMEOUT)
-        except Exception as err:
-            logger.error(f"Failed to connect to {MQTT_HOST}:{MQTT_PORT}")
-            return
-
-    logger.info(f"Connected to MQTT server on {MQTT_HOST}:{MQTT_PORT}")
+    except Exception:
+        return
     return client
 
 def categories_list():
@@ -253,7 +241,7 @@ def draw_boxes(frame, result, prob_threshold, width, height):
 
             cv2.putText(
                 frame,
-                f"{label.title()}: {conf *100:.2f}%",
+                "{}: {:.2f}%".format(label.title(), conf *100),
                 (xmin, _y),
                 cv2.FONT_HERSHEY_COMPLEX,
                 fontScale=0.5,
@@ -345,11 +333,11 @@ def infer_on_stream(args, client):
         cpu_extension=args.cpu_extension if args.cpu_extension else None,
         )
     except Exception:
-        logger.exception("Failed to load the model")
+        print("Failed to load the model")
         raise
     video_file = args.input
     writer = None
-    logger.info(f"Processing video: {video_file}...")
+    print("Processing video: {}...".format(video_file))
     stream = cv2.VideoCapture(video_file)
     stream.open(video_file)
 
@@ -367,7 +355,7 @@ def infer_on_stream(args, client):
         # Create a video writer for the output video
         # The second argument should be `cv2.VideoWriter_fourcc('M','J','P','G')`
         # on Mac, and `0x00000021` on Linux
-        logger.debug("Enabled writing output video to file.")
+        print("Enabled writing output video to file.")
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         out = cv2.VideoWriter("out.mp4", fourcc, 30, (orig_width, orig_height))
         length = stream.get(cv2.CAP_PROP_FRAME_COUNT)
@@ -384,7 +372,7 @@ def infer_on_stream(args, client):
 
     if not stream.isOpened():
         msg = "Cannot open video source!!!"
-        logger.error(msg)
+        print(msg)
         raise RuntimeError(msg)
 
     while stream.isOpened():
@@ -422,7 +410,7 @@ def infer_on_stream(args, client):
             result = infer_network.get_output()
             end_infer = time.time() - start_infer
             average_infer_time.append(end_infer)
-            message = f"Inference time: {end_infer*1000:.2f}ms"
+            message = "Inference time: {:.2f}ms".format(end_infer*1000)
             cv2.putText(
                 frame, message, (20, 20), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 0), 1
             )
@@ -498,11 +486,11 @@ def infer_on_stream(args, client):
         out.release()
     stream.release()
     cv2.destroyAllWindows()
-    logger.info(
-        f"Detected {total_count} people with an average inference time: "
-        f"{np.mean(average_infer_time)*1000:.3f}ms using the model: "
-        f"{args.model} {infer_network._model_size:.2f}MB @ "
-        f"Probability {prob_threshold*100}% threshold."
+    print(
+        "Detected {} people with an average inference time: "
+        "{:.3f}ms using the model: "
+        "{} {:.2f}MB @ "
+        "Probability {}% threshold.".format(total_count, np.mean(average_infer_time)*1000, args.model, infer_network._model_size, prob_threshold*100)
     )
 
 
@@ -520,7 +508,7 @@ def main():
     start_time = time.time()
     infer_on_stream(args, client)
     end_time = time.time() - start_time
-    logger.info(f"It took {end_time:.2f}s to complete the inference and stream.")
+    print("It took {:.2f}s to complete the inference and stream.".format(end_time))
 
 if __name__ == "__main__":
 

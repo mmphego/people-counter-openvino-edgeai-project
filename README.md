@@ -2,7 +2,8 @@
 
 | Details            |              |
 |-----------------------|---------------|
-| Programming Language: |  Python 3.5 or 3.6 |
+| Programming Language: |  Python 3.6+ |
+| Intel OpenVINO ToolKit | 2020.2.120 |
 
 ![people-counter-python](./images/people-counter-image.png)
 
@@ -33,8 +34,8 @@ You will choose a model to use and convert it with the Model Optimizer.
 *   Npm v3.10.10
 *   CMake
 *   MQTT Mosca server
-  
-        
+
+
 ## Setup
 
 ### Install Intel® Distribution of OpenVINO™ toolkit
@@ -57,10 +58,10 @@ Utilize the classroom workspace, or refer to the relevant instructions for your 
 
 There are three components that need to be running in separate terminals for this application to work:
 
--   MQTT Mosca server 
+-   MQTT Mosca server
 -   Node.js* Web server
 -   FFmpeg server
-     
+
 From the main directory:
 
 * For MQTT/Mosca server:
@@ -76,7 +77,7 @@ From the main directory:
   ```
   **Note:** If any configuration errors occur in mosca server or Web server while using **npm install**, use the below commands:
    ```
-   sudo npm install npm -g 
+   sudo npm install npm -g
    rm -rf node_modules
    npm cache clean
    npm config set registry "http://registry.npmjs.org"
@@ -97,6 +98,34 @@ From the main directory:
 
 ### Step 1 - Start the Mosca server
 
+#### Docker Container
+
+- Create a network bridge to communicate between the containers.
+```bash
+docker network create -d bridge openvino
+```
+
+- Build the docker container for the mosca-server.
+```bash
+docker build -t mmphego/mosca-server -f Dockerfile-mosca-server .
+```
+
+- Run the container while exposing port 3001 and 3002.
+```bash
+docker run \
+-p 3002:3002 \
+-p 3001:3001 \
+--network="openvino" \
+--name "mosca-server" \
+-ti mmphego/mosca-server
+```
+
+You should see the following message, if successful:
+```
+Mosca server started.
+```
+
+#### Local Development
 ```
 cd webservice/server/node-server
 node ./server.js
@@ -109,6 +138,34 @@ Mosca server started.
 
 ### Step 2 - Start the GUI
 
+#### Docker Container
+
+- Build the docker container for the Web UI
+
+```bash
+docker build -t mmphego/webui -f Dockerfile-ui .
+```
+
+- Run the container while exposing port 3000.
+```bash
+docker run \
+-p 3000:3000 \
+--network="openvino" \
+--name "webui" \
+-ti mmphego/webui
+```
+
+You should see the following log output:
+```bash
+> intel-people-counter-app@0.1.0 dev /app/webservice/ui
+> cross-env NODE_ENV=development webpack-dev-server --history-api-fallback --watch --hot --inline
+
+Project is running at http://0.0.0.0:3000/
+
+webpack: Compiled successfully.
+```
+
+#### Local Development
 Open new terminal and run below commands.
 ```
 cd webservice/ui
@@ -122,14 +179,33 @@ webpack: Compiled successfully
 
 ### Step 3 - FFmpeg Server
 
+#### Docker Container
+
+
+```bash
+docker run \
+-p 3004:3004 \
+--network="openvino" \
+--name "ffmpeg-server" \
+-ti mmphego/ffmpeg-server
+```
+
+You should see the following output:
+```bash
+Sat May 23 05:51:10 2020 FFserver started.
+```
+
+#### Local Development
 Open new terminal and run the below commands.
 ```
+wget https://github.com/vot/ffbinaries-prebuilt/releases/download/v3.4/ffserver-3.4-linux-64.zip
+sudo unzip ffserver-3.4-linux-64.zip /usr/local/bin
 sudo ffserver -f ./ffmpeg/server.conf
 ```
 
 ### Step 4 - Run the code
 
-Open a new terminal to run the code. 
+Open a new terminal to run the code.
 
 #### Setup the environment
 
@@ -142,7 +218,7 @@ You should also be able to run the application with Python 3.6, although newer v
 
 #### Running on the CPU
 
-When running Intel® Distribution of OpenVINO™ toolkit Python applications on the CPU, the CPU extension library is required. This can be found at: 
+When running Intel® Distribution of OpenVINO™ toolkit Python applications on the CPU, the CPU extension library is required. This can be found at:
 
 ```
 /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/
@@ -156,6 +232,21 @@ Though by default application runs on CPU, this can also be explicitly specified
 python main.py -i resources/Pedestrian_Detect_2_1_1.mp4 -m your-model.xml -l /opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so -d CPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm
 ```
 If you are in the classroom workspace, use the “Open App” button to view the output. If working locally, to see the output on a web based interface, open the link [http://0.0.0.0:3004](http://0.0.0.0:3004/) in a browser.
+
+##### Debugging with Docker
+In order to see what is going inside the docker we need to sync the displays with `--env DISPLAY=$DISPLAY` `--volume="/tmp/.X11-unix:/tmp/.X11-unix:rw"`.
+
+```bash
+docker build -t "$USER/$(basename $PWD)" .
+xhost +
+docker run --rm -ti \
+--volume "$PWD":/app \
+--env DISPLAY=$DISPLAY \
+--volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
+ "$USER/$(basename $PWD)" \
+ bash -c "source /opt/intel/openvino/bin/setupvars.sh &&python main.py -i resources/Pedestrian_Detect_2_1_1.mp4 -m models/ssd_mobilenet_v2_coco.xml"
+xhost -
+```
 
 #### Running on the Intel® Neural Compute Stick
 
@@ -192,7 +283,7 @@ to run on your local machine, you will need to change the below file:
 webservice/ui/src/constants/constants.js
 ```
 
-The `CAMERA_FEED_SERVER` and `MQTT_SERVER` both use the workspace configuration. 
+The `CAMERA_FEED_SERVER` and `MQTT_SERVER` both use the workspace configuration.
 You can change each of these as follows:
 
 ```

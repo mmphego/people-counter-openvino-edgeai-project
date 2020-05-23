@@ -1,0 +1,5 @@
+imutils
+paho-mqtt
+tqdm
+matplotlib
+loguru
