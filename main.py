@@ -115,10 +115,19 @@ def connect_mqtt():
     client = mqtt.Client()
     try:
         client.connect(MQTT_HOST, MQTT_PORT, TIMEOUT)
-        return client
     except Exception as err:
-        logger.error(f"MQTT client -> {str(err)}")
+        MQTT_HOST = "mosca-server"
+        try:
+            logger.warn(
+                f"Failed to connect to {MQTT_HOST}:{MQTT_PORT}, trying docker container"
+                f" MQTT server on {MQTT_HOST}:{MQTT_PORT}")
+            client.connect(MQTT_HOST, MQTT_PORT, TIMEOUT)
+        except Exception as err:
+            logger.error(f"Failed to connect to {MQTT_HOST}:{MQTT_PORT}")
+            return
 
+    logger.info(f"Connected to MQTT server on {MQTT_HOST}:{MQTT_PORT}")
+    return client
 
 def categories_list():
     # https://github.com/opencv/opencv/blob/master/samples/data/dnn/object_detection_classes_coco.txt
