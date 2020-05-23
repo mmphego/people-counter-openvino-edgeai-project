@@ -64,6 +64,11 @@ class Network:
         model_bin = os.path.splitext(model_xml)[0] + ".bin"
         assert os.path.isfile(model_bin) and os.path.isfile(model_xml)
         self._model_size = os.stat(model_bin).st_size / 1024. ** 2
+
+        # Add a CPU extension, if applicable
+        if cpu_extension and "CPU" in device:
+            self.ie_core.add_extension(cpu_extension, device)
+
         try:
             self.network = self.ie_core.read_network(model=model_xml, weights=model_bin)
         except AttributeError:
