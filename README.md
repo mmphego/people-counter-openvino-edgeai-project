@@ -94,6 +94,23 @@ Note that you may need to do additional processing of the output to handle incor
 
 ## Run the application
 
+Note: In order to run the app locally export the 2 envvars (See: #a-note-on-running-locally)
+```bash
+export CAMERA_FEED_SERVER="http://localhost:3004"
+export MQTT_SERVER="ws://localhost:3002"
+```
+
+### Option 1
+
+In order to run the application execute the following script:
+```bash
+bash runme.sh
+```
+
+This script with start the `mosca server`, `ffserver`, `webui` and `app` in the background - assuming that the install NPM step was followed.
+
+### Option 2
+
 From the main directory:
 
 ### Step 1 - Start the Mosca server
@@ -286,8 +303,7 @@ webservice/ui/src/constants/constants.js
 The `CAMERA_FEED_SERVER` and `MQTT_SERVER` both use the workspace configuration.
 You can change each of these as follows:
 
-```
-CAMERA_FEED_SERVER: "http://localhost:3004"
-...
-MQTT_SERVER: "ws://localhost:3002"
+```bash
+export CAMERA_FEED_SERVER="http://localhost:3004"
+export MQTT_SERVER="ws://localhost:3002"
 ```
