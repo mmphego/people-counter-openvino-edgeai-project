@@ -481,6 +481,8 @@ def infer_on_stream(args, client):
 
         # Send frame to the ffmpeg server
         if args.ffmpeg:
+            # ffserver color correction.
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             sys.stdout.buffer.write(frame)
             sys.stdout.flush()
 
