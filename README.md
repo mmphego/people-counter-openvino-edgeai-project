@@ -307,3 +307,9 @@ You can change each of these as follows:
 export CAMERA_FEED_SERVER="http://localhost:3004"
 export MQTT_SERVER="ws://localhost:3002"
 ```
+
+## TODO
+
+- Dockerize the application (hint: docker-compose)
+- Benchmark application on various devices.
+- Run VTune profiling software to find any bottlenecks.
