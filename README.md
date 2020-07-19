@@ -5,7 +5,7 @@
 | Programming Language: |  Python 3.6+ |
 | Intel OpenVINO ToolKit | 2020.2.120 |
 
-![people-counter-python](./images/people-counter-image.png)
+![people-counter-python](https://user-images.githubusercontent.com/7910856/87838133-3b136d80-c896-11ea-80f4-7a88aafac6c4.gif)
 
 ## What it Does
 
