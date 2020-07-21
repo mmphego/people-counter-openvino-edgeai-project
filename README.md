@@ -1,13 +1,16 @@
 # Deploy a People Counter App at the Edge
 
-
 | Details            |              |
 |-----------------------|---------------|
-| Programming Language: |  Python 3.6+ |
-| Intel OpenVINO ToolKit: | 2020.2.120 |
+| Programming Language: |  [![Python 3.7](https://img.shields.io/badge/python-3.7-blue.svg)](https://www.python.org/downloads/release/python-370/) |
+| Intel OpenVINO ToolKit: |[![OpenVINO 2020.2.120](https://img.shields.io/badge/openvino-2020.2-blue.svg)](https://software.intel.com/content/www/us/en/develop/tools/openvino-toolkit/choose-download.html)|
 | Docker (Ubuntu OpenVINO pre-installed): | [mmphego/intel-openvino](https://hub.docker.com/r/mmphego/intel-openvino)|
 | Hardware Used: | Intel(R) Core(TM) i7-8750H CPU @ 2.20GHz |
 | Device: | CPU |
+| Blog Post | [![blogpost](https://img.shields.io/badge/BlogPost-Link-brightgreen)](https://blog.mphomphego.co.za/blog/2020/06/28/How-I-deployed-a-People-Counter-App-at-the-Edge-using-Intel-OpenVINO.html) |
+| Visitors | ![](https://visitor-badge.laobi.icu/badge?page_id=mmphego.people-counter-openvino-edgeai-project)|
+
+--- 
 
 ![people-counter-python](https://user-images.githubusercontent.com/7910856/87838133-3b136d80-c896-11ea-80f4-7a88aafac6c4.gif)
 
